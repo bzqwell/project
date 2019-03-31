@@ -1,0 +1,18 @@
+package cn.itcast.core.service;
+
+import cn.itcast.core.pojo.item.Item;
+import entity.Cart;
+
+import java.util.List;
+
+public interface CartService {
+    Item findItemById(Long itemId);
+
+    void addCookieToRedis(List<Cart> cartList, String name);
+
+    List<Cart> findCartListFromRedis(String name);
+
+    List<Cart> findCartList(List<Cart> cartList);
+
+    void updateRedis(List<Cart> cartList,String name);
+}
