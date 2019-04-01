@@ -4,21 +4,29 @@ import cn.itcast.core.dao.item.ItemDao;
 import cn.itcast.core.dao.log.PayLogDao;
 import cn.itcast.core.dao.order.OrderDao;
 import cn.itcast.core.dao.order.OrderItemDao;
+import cn.itcast.core.dao.seller.SellerDao;
 import cn.itcast.core.pojo.item.Item;
 import cn.itcast.core.pojo.log.PayLog;
 import cn.itcast.core.pojo.order.Order;
 import cn.itcast.core.pojo.order.OrderItem;
+import cn.itcast.core.pojo.order.OrderItemQuery;
+import cn.itcast.core.pojo.order.OrderQuery;
 import com.alibaba.dubbo.config.annotation.Service;
+import com.github.pagehelper.Page;
+import com.github.pagehelper.PageHelper;
 import entity.Cart;
+import entity.PageResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import util.IdWorker;
+import vo.OrderVo;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @Transactional
@@ -41,6 +49,9 @@ public class OrderServiceImpl implements OrderService{
 
     @Autowired
     private PayLogDao payLogDao;
+
+    @Autowired
+    private SellerDao sellerDao;
 
 
     /**
@@ -150,4 +161,59 @@ public class OrderServiceImpl implements OrderService{
         //生成订单购物车要清空
         redisTemplate.boundHashOps("cart").delete(payLog.getUserId());
     }
+
+    /**
+     * 分页条件查询订单(当前用户)
+     * @param pageNo
+     * @param rows
+     * @param orderVo
+     * @return
+     */
+    @Override
+    public PageResult searchOrder(Integer pageNo, Integer rows, OrderVo orderVo) {
+        //创建返回结果集 List<OrderVo>
+        List<OrderVo> orderVoList = new ArrayList<>();
+
+        //使用分页助手
+        PageHelper.startPage(pageNo,rows);
+
+        //创建订单查询对象
+        OrderQuery query = new OrderQuery();
+
+        //设置查询条件
+        OrderQuery.Criteria criteria = query.createCriteria();
+        // 用户必须是当前用户
+        criteria.andUserIdEqualTo(orderVo.getOrder().getUserId());
+        // 状态
+        if(orderVo.getOrder().getStatus() != null && !"".equals(orderVo.getOrder().getStatus())){
+            criteria.andStatusEqualTo(orderVo.getOrder().getStatus());
+        }
+
+        //查询order集合
+        Page<Order> p = (Page<Order>) orderDao.selectByExample(query);
+
+        //将Order集合对应 装到 OrderVo集合中的
+        for (int i = 0; i < p.getResult().size(); i++) {
+            orderVoList.add(new OrderVo());
+        }
+
+        for (int i = 0; i < p.getResult().size(); i++) {
+            orderVoList.get(i).setOrder(p.getResult().get(i));
+        }
+
+        //遍历orderVo集合,将每一个vo对象的属性填满
+        for (OrderVo vo : orderVoList) {
+            //商家店铺名
+            vo.setNickName(sellerDao.selectByPrimaryKey(vo.getOrder().getSellerId()).getNickName());
+            //订单详情
+            OrderItemQuery orderItemQuery = new OrderItemQuery();
+            OrderItemQuery.Criteria orderItemCriteria = orderItemQuery.createCriteria();
+            orderItemCriteria.andOrderIdEqualTo(vo.getOrder().getOrderId());
+            vo.setOrderItemList(orderItemDao.selectByExample(orderItemQuery));
+        }
+
+        return new PageResult(p.getTotal(),orderVoList);
+    }
+
+
 }

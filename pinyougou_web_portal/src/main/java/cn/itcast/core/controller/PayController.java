@@ -55,7 +55,7 @@ public class PayController {
                     PayLog payLog = new PayLog();
                     payLog.setOutTradeNo(out_trade_no);
                     payLog.setPayTime(new Date());
-                    payLog.setTradeState("1");
+                    payLog.setTradeState("2");
                     payService.updatePayStatus(payLog);
 
                     return new Result(true,"成功");
