@@ -13,6 +13,8 @@
 	<http pattern="/search.html" security="none"></http>
     <!--不拦截购物车页面(登录不登录都能访问)-->
  	<http pattern="/cart.html" security="none"></http>
+    <!--不拦截广告轮播图url-->
+    <http pattern="/content/findByCategoryId.do" security="none"></http>
     	
 	<!--   entry-point-ref  入口点引用 -->
 	<http use-expressions="false" entry-point-ref="casProcessingFilterEntryPoint"> 
